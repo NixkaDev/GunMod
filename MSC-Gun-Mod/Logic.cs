@@ -12,9 +12,16 @@ namespace MSC_Gun_Mod
         private int bulletsMag = 14;
 
         private GameObject fpsCamera;
+        private GameObject impact;
+
         private Animator animator;
+        private ParticleSystem[] particles;
         private ParticleSystem muzzle;
         private AudioSource[] audio;
+
+        private Vector3 oldPos;
+        private Quaternion oldRot;
+
         private bool isHolding;
         private bool wait;
 
@@ -31,8 +38,10 @@ namespace MSC_Gun_Mod
         {
             fpsCamera = GameObject.Find("PLAYER/Pivot/AnimPivot/Camera/FPSCamera");
             animator = GetComponent<Animator>();
-            muzzle = GetComponentInChildren<ParticleSystem>();
+            particles = GetComponentsInChildren<ParticleSystem>();
             audio = GetComponents<AudioSource>();
+            muzzle = particles[0];
+            impact = particles[1].gameObject;
             animator.enabled = false;
         }
 
@@ -80,12 +89,6 @@ namespace MSC_Gun_Mod
             }
         }
 
-        IEnumerator waitASecond()
-        {
-            yield return new WaitForSeconds(1f);
-            animator.SetBool("Shoot", false);
-        }
-
         void OnGUI()
         {
             // Draw unity OnGUI() here
@@ -129,6 +132,21 @@ namespace MSC_Gun_Mod
                     animator.SetBool("Shoot", true);
                     audio[0].PlayOneShot(audio[0].clip);
                     muzzle.Play();
+
+                    RaycastHit hit;
+                    if (Physics.Raycast(fpsCamera.transform.position, fpsCamera.transform.forward, out hit, 100f))
+                    {
+                        //ModConsole.Log(hit.transform.name);
+
+                        if (hit.rigidbody != null)
+                        {
+                            hit.rigidbody.AddForce(-hit.normal * 500f);
+                        }
+
+                        UnityEngine.Object impactGo = Instantiate(impact, hit.point, Quaternion.LookRotation(hit.normal));
+                        Destroy(impactGo, 1f);
+                    }
+
                 } else { 
                     Reload();
                 }
