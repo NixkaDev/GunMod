@@ -10,13 +10,21 @@ namespace MSC_Gun_Mod
         public override string ID => "Revolver";
         public override string Name => "Revolver";
         public override string Author => "Nika";
-        public override string Version => "1.0";
+        public override string Version => "1.2.0";
         public override string Description => "Hello! This mod adds Revolver to your My Summer Car game.";
+        public override string UpdateLink => "https://www.nexusmods.com/mysummercar/mods/1021"; // Update Link
 
         //private static SettingToggle sickoMode;
 
         private static GameObject gun;
         private GameObject ammo;
+
+        static internal SettingSlider AmmoStrength;
+        static internal SettingKeybind HolsterKeybind;
+        static internal SettingBoolean HideHolster;
+
+        readonly string[] ammoStrengths = { "Light", "Realistic", "Strong", "INSANE" };
+
 
         public override void OnNewGame()
         {
@@ -36,24 +44,23 @@ namespace MSC_Gun_Mod
             gun.tag = "PART";
             gun.layer = 19;
 
-            SaveData RSavedata = ModSave.Load<SaveData>("Revolver"); //create savedata with filename "Revolver"
+            SaveData RSavedata = ModSave.Load<SaveData>("Revolver"); // create savedata with filename "Revolver"
 
-            if (RSavedata.GunPosition != Vector3.zero) //check for save file and if it exists install the dash
+            if (RSavedata.GunPosition != Vector3.zero) // check for save file and if it exists move gun back to saved pos
             {
                 gun.transform.position = RSavedata.GunPosition;
                 gun.transform.localEulerAngles = RSavedata.GunRotation;
                 gun.GetComponent<Logic>().bullets = RSavedata.GunAmmo;
                 gun.GetComponent<Logic>().bulletsMag = RSavedata.MagAmmo;
             }
-            else // if it doesn't then just return back to the shop
+            else // if it doesn't then just return back to uncle
             {
-                gun.transform.position = new Vector3(29.38505f, 3.70145114f, -39.267f);
-                gun.transform.eulerAngles = new Vector3(5.203771f, 237.6363f, 281.5044f);
+                gun.transform.position = new Vector3(18.53404f, 1.6808104f, -55.73272f);
+                gun.transform.eulerAngles = new Vector3(5.316792f, 298.0635f, 283.6909f);
             }
             ammo.transform.eulerAngles = new Vector3(0.04031519f, 47.4399f, 269.9601f);
             ammo.transform.position = new Vector3(-1551.199f, 4.717276f, 1182.889f);
 
-            CheckToggle();
             ModConsole.Log($"Revolver Mod Loaded!");
         }
 
@@ -66,13 +73,22 @@ namespace MSC_Gun_Mod
         {
             // All settings should be created here. 
             // DO NOT put anything else here that settings.
-            SettingButton nexusButton = modSettings.AddButton("nexusButton", "Game Info", () => { Process.Start("https://nixka.net/revolver"); });
+            HolsterKeybind = modSettings.AddKeybind("holsterKeybind", "HOLSTER KEYBIND", KeyCode.Alpha3);
+            HideHolster = modSettings.AddBoolean("hideBulletOnHolster", true);
+            SettingToggle toggle = modSettings.AddToggle("hideBulletOnHolster", "HIDE BULLETS ON HOLSTER", HideHolster.Value, () => gun.GetComponent<Logic>().hideOnHolster = !gun.GetComponent<Logic>().hideOnHolster);
+            SettingSpacer spacer = modSettings.AddSpacer(5f);
+            AmmoStrength = modSettings.AddSlider("sliderAmmo", "AMMO STRENGTH", 1,0,3, () => gun.GetComponent<Logic>().ammoStrength = AmmoStrength.Value);
+            AmmoStrength.gameObject.AddComponent<UITooltip>().toolTipText = 
+                "<color=yellow>Light</color>: <color=white>Gun doesn't knock back items as far</color>\n" +
+                "<color=yellow>Realistic (recommended)</color>: <color=white>Most realistic option for this gun</color>\n" +
+                "<color=yellow>Strong</color>: <color=white>Bullets are stronger</color>\n" +
+                "<color=red>INSANE:</color> <color=white>Basically explosive ammo, sends cars flying</color>";
+            AmmoStrength.TextValues = ammoStrengths;
+            AmmoStrength.ChangeValueText();
+            spacer = modSettings.AddSpacer(5f);
+            SettingHeader header = modSettings.AddHeader("INFO");
+            SettingButton nexusButton = modSettings.AddButton("nexusButton", "GAME INFO", () => { Process.Start("https://nixka.net/revolver"); });
             //sickoMode = modSettings.AddToggle("sickoMode", "SICKO MODE", false);
-        }
-
-        void CheckToggle()
-        {
-            //gun.GetComponent<Logic>().sicko = sickoMode;
         }
 
         // SaveData setup. Creds - Arthur
@@ -104,7 +120,11 @@ namespace MSC_Gun_Mod
 
         public override void Update()
         {
-            //CheckToggle();
+            // Detect and send holster keybind
+            if (Input.GetKeyDown(HolsterKeybind.keybind))
+            {
+                gun.gameObject.GetComponent<Logic>().HolsterPressed();
+            }
         }
     }
 }
